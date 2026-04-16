@@ -3,3 +3,5 @@ venv
 *.npz
 
 *.pth
+
+__pycache__
