@@ -14,23 +14,25 @@ def DoubleConv(inChannels, outChannels, p=0.1):
     )
 
 class UNet(nn.Module):
-    def __init__(self, imgChannels: int, outChannels: int, initFeatures: int, numLayers: int):
+    def __init__(self, imgChannels: int, outChannels: int, initFeatures: int, depth: int, dropRate=0.1):
+        """depth: start at 0"""
         super(UNet, self).__init__()
 
         self.downLayers = nn.ModuleList()
         self.upLayers = nn.ModuleList()
-        self.features = [initFeatures * (2**(i)) for i in range(numLayers - 1)]
-
+        self.features = [initFeatures * (2**(i)) for i in range(depth)]
+    
         for numF in self.features:
-            self.downLayers.append(DoubleConv(imgChannels, numF))
+            self.downLayers.append(DoubleConv(imgChannels, numF, dropRate))
             self.downLayers.append(nn.MaxPool2d(kernel_size=2, stride=2))
             imgChannels = numF
-        
+
+        self.bottleneckLayer = DoubleConv(self.features[-1], self.features[-1]*2)
+
         for numF in reversed(self.features):
             self.upLayers.append(nn.ConvTranspose2d(numF*2, numF, kernel_size=2, stride=2))
-            self.upLayers.append(DoubleConv(numF*2, numF))
+            self.upLayers.append(DoubleConv(numF*2, numF, dropRate))
         
-        self.bottleneckLayer = DoubleConv(self.features[-1], self.features[-1]*2)
         self.finalConv = nn.Conv2d(self.features[0], outChannels, kernel_size=1)
 
     def forward(self, x):

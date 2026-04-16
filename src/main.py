@@ -14,7 +14,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 trainDataset, valDataset, testDataset = getDataset(const.CELLNUCLEI_FILE_PATH)
 
-model = UNet(const.CELLNUCLEI_IN_CHANNELS, const.CELLNUCLEI_OUT_CHANNELS, 32, 4)
+model = UNet(const.CELLNUCLEI_IN_CHANNELS, const.CELLNUCLEI_OUT_CHANNELS, 32, 4, dropRate=0.2)
 
 trainLoader = DataLoader(dataset=trainDataset, batch_size=4, shuffle=True)
 valLoader = DataLoader(dataset=valDataset, batch_size=4, shuffle=True)
