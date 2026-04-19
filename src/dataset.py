@@ -1,9 +1,7 @@
 import numpy as np
-from torch.utils.data import Dataset
-from torchvision import transforms
 import torch
+from torch.utils.data import Dataset
 
-import constants as const
 
 def parseNpData(data, imgNumDim: int, labelNumDim: int):
     """Return (trainImages, trainLabels, valImages, valLabels, testImages, testLabels)"""
