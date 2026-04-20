@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from layers import DoubleConv, Encoder, Decoder
+from .layers import DoubleConv, Encoder, Decoder
 
 
 class ModularUNet(nn.Module):

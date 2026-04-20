@@ -10,7 +10,7 @@ NUSET_FILE_PATH = "data/NUSET_256.npz"
 NUSET_IN_CHANNELS = 1
 NUSET_OUT_CHANNELS = 1
 
-BATCH_SIZE = 32
+BATCH_SIZE = 16
 MAX_EPOCHS = 200
 PATIENCE = 10
 DELTA_PATIENCE = 0.005 # TODO: Verify number
@@ -21,8 +21,16 @@ DATASET_PATH = ""
 WEIGHTS_PATH = ""
 RESULTS_PATH = ""
 
-DATASETS = {
 
+IMAGE_SIZE = 256
+DATA_DIR = "../data/"
+
+DATASETS = {
+        'CovidQUExMSBench',
+        'AbdomenUSMSBench',
+        'NucleiMSBench',
+        'BusiMSBench',
+        'DynamicNuclearMSBench'
 }
 
 MODELS = [
@@ -30,7 +38,7 @@ MODELS = [
         'AttentionUNet',
         'ResUNet',
         'ResAttentionUNet',
-        'DenseUNet',
-        'DenseAttentionUNet',
-        'UNetPP'
+        # 'DenseUNet',
+        # 'DenseAttentionUNet',
+        # 'UNetPP'
 ]

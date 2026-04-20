@@ -2,9 +2,8 @@ import models
 import torch
 import torch.nn.functional as F
 
-from models import *
-from models.ModularUNet import ModularUNet
-from models.layers import DoubleConv, ResidualConv
+from .ModularUNet import ModularUNet
+from .layers import DoubleConv, ResidualConv
 
 def UNet(imgChannels=3, outChannels=1, initFeatures=32, depth=4, dropRate=0.1):
     return ModularUNet(
