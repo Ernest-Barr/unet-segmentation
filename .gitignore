@@ -1,6 +1,10 @@
 venv
+.idea/
+.vscode/
+.zed/
 
 *.npz
 *.pth
 *.png
+
 __pycache__
