@@ -27,7 +27,6 @@ def AttentionUNet(imgChannels=3, outChannels=1, initFeatures=32, depth=4, dropRa
         dropRate=dropRate
     )
 
-
 def ResUNet(imgChannels=3, outChannels=1, initFeatures=32, depth=4, dropRate=0.1):
     return ModularUNet(
         imgChannels=imgChannels,
@@ -38,7 +37,6 @@ def ResUNet(imgChannels=3, outChannels=1, initFeatures=32, depth=4, dropRate=0.1
         conv_block=ResidualConv,
         dropRate=dropRate
     )
-
 
 def ResAttentionUNet(imgChannels=3, outChannels=1, initFeatures=32, depth=4, dropRate=0.1):
     return ModularUNet(
@@ -51,10 +49,8 @@ def ResAttentionUNet(imgChannels=3, outChannels=1, initFeatures=32, depth=4, dro
         dropRate=dropRate
     )
 
-
 def UNetPP():
     pass
-
 
 # https://www.geeksforgeeks.org/python/args-kwargs-python/
 def get_model(model_name: str, **kwargs):

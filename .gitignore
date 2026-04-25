@@ -6,5 +6,6 @@ venv
 *.npz
 *.pth
 *.png
+*.csv
 
 __pycache__

@@ -7,7 +7,6 @@ def DoubleConv(inChannels, outChannels, p=0.1):
         nn.Conv2d(inChannels, outChannels, 3, padding="same", bias=False),
         nn.BatchNorm2d(outChannels),
         nn.ReLU(inplace=False),
-
         nn.Conv2d(outChannels, outChannels, 3, padding="same", bias=False),
         nn.BatchNorm2d(outChannels),
         nn.ReLU(inplace=False),
