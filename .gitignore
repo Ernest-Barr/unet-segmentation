@@ -9,3 +9,5 @@ venv
 *.csv
 
 __pycache__
+
+*.tex

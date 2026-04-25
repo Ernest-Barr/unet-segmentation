@@ -11,30 +11,45 @@ from models import get_model
 
 # https://keras.io/api/metrics/segmentation_metrics/
 # https://medium.com/mastering-data-science/understanding-evaluation-metrics-in-medical-image-segmentation-d289a373a3f
+# https://www.geeksforgeeks.org/computer-vision/evaluation-of-computer-vision-model/
+# https://en.wikipedia.org/wiki/Mean_absolute_error
 
-def calculate_metrics(logits, masks):
+def calculate_metrics(logits, masks, task='binary'):
     EPS = 1e-9
 
-    probabilities = torch.sigmoid(logits)
+    if task == 'multiclass':
+        pred_masks = torch.argmax(logits, dim=1)
+        true_masks = masks.squeeze(1).long()
 
-    pred_masks = (probabilities > 0.5).float()
-    true_masks = (masks > 0.5).float()
+        correct = (pred_masks == true_masks).float()
+        pixel_acc = correct.mean()
 
-    pred_masks_flat = pred_masks.flatten(start_dim=1)
-    true_masks_flat = true_masks.flatten(start_dim=1)
-    pred_probs_flat = probabilities.flatten(start_dim=1)
+        intersection = (correct * (true_masks > 0)).sum()
+        union = ((pred_masks > 0) | (true_masks > 0)).sum()
 
-    TP = (pred_masks_flat * true_masks_flat).sum(dim=1)
-    FP = (pred_masks_flat * (1 - true_masks_flat)).sum(dim=1)
-    FN = ((1 - pred_masks_flat) * true_masks_flat).sum(dim=1)
-    TN = ((1 - pred_masks_flat) * (1 - true_masks_flat)).sum(dim=1)
+        iou = (intersection + EPS) / (union + EPS)
+        dice = (2 * intersection + EPS) / (2 * intersection + union + EPS)
 
-    iou = (TP + EPS) / (TP + FP + FN + EPS)
-    dice = (2 * TP) / (2 * TP + FP + FN + EPS)
-    pixel_acc = (TP + TN + EPS) / (TP + TN + FP + FN + EPS)
-    mae = torch.abs(pred_probs_flat - true_masks_flat).mean(dim=1)
+        return [iou.item()], [dice.item()], [pixel_acc.item()]
 
-    return iou.tolist(), dice.tolist(), pixel_acc.tolist(), mae.tolist()
+    else:
+        probabilities = torch.sigmoid(logits)
+        pred_masks = (probabilities > 0.5).float()
+        true_masks = (masks > 0.5).float()
+
+        pred_masks_flat = pred_masks.flatten(start_dim=1)
+        true_masks_flat = true_masks.flatten(start_dim=1)
+
+        TP = (pred_masks_flat * true_masks_flat).sum(dim=1)
+        FP = (pred_masks_flat * (1 - true_masks_flat)).sum(dim=1)
+        FN = ((1 - pred_masks_flat) * true_masks_flat).sum(dim=1)
+        TN = ((1 - pred_masks_flat) * (1 - true_masks_flat)).sum(dim=1)
+
+        iou = (TP + EPS) / (TP + FP + FN + EPS)
+        dice = (2 * TP + EPS) / (2 * TP + FP + FN + EPS)
+        pixel_acc = (TP + TN + EPS) / (TP + TN + FP + FN + EPS)
+
+        return iou.tolist(), dice.tolist(), pixel_acc.tolist()
 
 
 def test_model(model_name, dataset_name):
@@ -50,13 +65,13 @@ def test_model(model_name, dataset_name):
         return
 
     try:
-        test_ds = get_dataset(dataset_name, split="test", download=False)
+        test_ds, meta = get_dataset(dataset_name, split="test", download=False)
         test_loader = DataLoader(test_ds, batch_size=config.BATCH_SIZE, shuffle=False, num_workers=config.NUM_WORKERS)
     except Exception as e:
         print(f"Skipping {dataset_name}: Could not load test dataset. Error: {e}")
         return
 
-    model = get_model(model_name, imgChannels=3, outChannels=1).to(config.DEVICE)
+    model = get_model(model_name, imgChannels=3, outChannels=meta['out_channels']).to(config.DEVICE)
     model.load_state_dict(torch.load(weights_path, map_location=config.DEVICE))
     model.eval()
 
@@ -70,7 +85,7 @@ def test_model(model_name, dataset_name):
             images, masks = images.to(config.DEVICE), masks.to(config.DEVICE)
 
             output = model(images)
-            iou, dice, acc, mae = calculate_metrics(output, masks)
+            iou, dice, acc = calculate_metrics(output, masks, task=meta['task'])
 
             for i in range(len(iou)):
                 results.append([
@@ -80,13 +95,12 @@ def test_model(model_name, dataset_name):
                     iou[i],
                     dice[i],
                     acc[i],
-                    mae[i]
                 ])
                 idx += 1
 
     with open(results_csv, "w", newline='') as f:
         writer = csv.writer(f)
-        writer.writerow(["model_name", "dataset_name", "image_index", "iou", "dice", "acc", "mae"])
+        writer.writerow(["model_name", "dataset_name", "image_index", "iou", "dice", "acc"])
         writer.writerows(results)
 
 

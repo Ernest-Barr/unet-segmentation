@@ -15,10 +15,10 @@ class ModularUNet(nn.Module):
         self.features = [initFeatures * (2 ** (i)) for i in range(depth)]
 
         for numF in self.features:
-            self.downLayers.append(Encoder(imgChannels, numF, conv_block=DoubleConv, p=dropRate))
+            self.downLayers.append(Encoder(imgChannels, numF, conv_block=conv_block, p=dropRate))
             imgChannels = numF
 
-        self.bottleneckLayer = DoubleConv(self.features[-1], self.features[-1] * 2, p=dropRate)
+        self.bottleneckLayer = conv_block(self.features[-1], self.features[-1] * 2, p=dropRate)
 
         for i in reversed(range(depth)):
             skip_channels = self.features[i]
@@ -26,7 +26,7 @@ class ModularUNet(nn.Module):
             out_channels = self.features[i]
 
             self.upLayers.append(
-                Decoder(in_channels, skip_channels, out_channels, conv_block=DoubleConv, attention=attention,
+                Decoder(in_channels, skip_channels, out_channels, conv_block=conv_block, attention=attention,
                         p=dropRate))
 
         self.finalConv = nn.Conv2d(self.features[0], outChannels, kernel_size=1)

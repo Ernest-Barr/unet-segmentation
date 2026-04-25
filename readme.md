@@ -7,8 +7,8 @@ This repository provides a standardized benchmark for analyzing the performance 
 ### Environment Setup 
  
 ```bash
-conda create -n medmnist-attack python=3.10.9
-conda activate medmnist-attack
+conda create -n unet python=3.10.9
+conda activate unet
 pip install -r requirements 
 ```
 

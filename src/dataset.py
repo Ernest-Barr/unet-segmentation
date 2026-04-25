@@ -1,38 +1,64 @@
 import numpy as np
 import torch
-from torch.utils.data import Dataset
 import torchvision.transforms.v2 as transforms
 import medsegbench
-from PIL import Image
 import config
+
+from typing import List, Any
+from PIL import Image
+from torch.utils.data import Dataset
+
 
 # https://docs.pytorch.org/vision/0.8/transforms.html
 # https://docs.pytorch.org/vision/stable/transforms.html
+# https://docs.pytorch.org/vision/0.9/transforms.html
+# https://www.geeksforgeeks.org/python/python-unpack-list/
 
 class MedSegBenchDataset(Dataset):
-    def __init__(self, dataset_instance, split='train'):
+    def __init__(self, dataset_instance, split='train', meta=None):
         self.dataset = dataset_instance
         self.split = split
+        self.meta = meta
+
+        img_transforms: List[Any] = [
+            transforms.Resize((config.IMAGE_SIZE, config.IMAGE_SIZE)),
+        ]
 
         if split == 'train':
-            self.transform = transforms.Compose([
-                transforms.Resize((config.IMAGE_SIZE, config.IMAGE_SIZE)),
+            img_transforms.extend([
                 transforms.RandomHorizontalFlip(p=0.5),
                 transforms.RandomRotation(degrees=15),
-                transforms.ToImage(),
-                transforms.ToDtype(torch.float32, scale=True)
             ])
 
+        img_transforms.extend([
+            transforms.ToImage(),
+            transforms.ToDtype(torch.float32, scale=True)
+        ])
+        self.transform = transforms.Compose(img_transforms)
+
+        mask_base: List[Any] = [
+            transforms.Resize((config.IMAGE_SIZE, config.IMAGE_SIZE),
+                              interpolation=transforms.InterpolationMode.NEAREST),
+            transforms.ToImage(),
+        ]
+
+        if self.meta['task'] == 'binary':
+            mask_base.append(transforms.ToDtype(torch.float32, scale=True))
         else:
-            self.transform = transforms.Compose([
-                transforms.Resize((config.IMAGE_SIZE, config.IMAGE_SIZE)),
-                transforms.ToImage(),
-                transforms.ToDtype(torch.float32, scale=True)
+            mask_base.append(transforms.ToDtype(torch.long, scale=False))
+
+        if split == 'train':
+            self.mask_transform = transforms.Compose([
+                transforms.RandomHorizontalFlip(p=0.5),
+                transforms.RandomRotation(degrees=15),
+                *mask_base
             ])
+        else:
+            self.mask_transform = transforms.Compose(mask_base)
+
 
     def __len__(self):
         return len(self.dataset)
-
 
     def __getitem__(self, index):
         image, mask = self.dataset[index]
@@ -46,58 +72,26 @@ class MedSegBenchDataset(Dataset):
         if image.mode != 'RGB':
             image = image.convert('RGB')
 
-        if mask.mode != 'L':
-            mask = mask.convert('L')
+        #    https://stackoverflow.com/questions/65447992/pytorch-how-to-apply-the-same-random-transformation-to-multiple-image
 
-        image, mask = self.transform(image, mask)
+        state = torch.get_rng_state()
+        image = self.transform(image)
+
+        torch.set_rng_state(state)
+        mask = self.mask_transform(mask)
 
         return image, mask
 
 
 def get_dataset(dataset_name: str, split: str = 'train', download: bool = True, **kwargs):
+    if dataset_name not in config.DATASET_METADATA:
+        raise ValueError(f"Invalid dataset: {dataset_name}")
 
-    dataset_dict = {
-        'AbdomenUSMSBench': medsegbench.AbdomenUSMSBench,
-        'Bbbc010MSBench': medsegbench.Bbbc010MSBench,
-        'Bkai-Igh-MSBench': medsegbench.BkaiIghMSBench,
-        'BriFiSegMSBench': medsegbench.BriFiSegMSBench,
-        'BusiMSBench': medsegbench.BusiMSBench,
-        'CellnucleiMSBench': medsegbench.CellnucleiMSBench,
-        'ChaseDB1MSBench': medsegbench.ChaseDB1MSBench,
-        'ChuacMSBench': medsegbench.ChuacMSBench,
-        'Covid19RadioMSBench': medsegbench.Covid19RadioMSBench,
-        'CovidQUExMSBench': medsegbench.CovidQUExMSBench,
-        'CystoFluidMSBench': medsegbench.CystoFluidMSBench,
-        'Dca1MSBench': medsegbench.Dca1MSBench,
-        'DeepbacsMSBench': medsegbench.DeepbacsMSBench,
-        'DriveMSBench': medsegbench.DriveMSBench,
-        'DynamicNuclearMSBench': medsegbench.DynamicNuclearMSBench,
-        'FHPsAOPMSBench': medsegbench.FHPsAOPMSBench,
-        'IdribMSBench': medsegbench.IdribMSBench,
-        'Isic2016MSBench': medsegbench.Isic2016MSBench,
-        'Isic2018MSBench': medsegbench.Isic2018MSBench,
-        'KvasirMSBench': medsegbench.KvasirMSBench,
-        'M2caiSegMSBench': medsegbench.M2caiSegMSBench,
-        'MonusacMSBench': medsegbench.MonusacMSBench,
-        'MosMedPlusMSBench': medsegbench.MosMedPlusMSBench,
-        'NucleiMSBench': medsegbench.NucleiMSBench,
-        'NusetMSBench': medsegbench.NusetMSBench,
-        'PandentalMSBench': medsegbench.PandentalMSBench,
-        'PolypGenMSBench': medsegbench.PolypGenMSBench,
-        'Promise12MSBench': medsegbench.Promise12MSBench,
-        'RoboToolMSBench': medsegbench.RoboToolMSBench,
-        'TnbcnucleiMSBench': medsegbench.TnbcnucleiMSBench,
-        'UltrasoundNerveMSBench': medsegbench.UltrasoundNerveMSBench,
-        'USforKidneyMSBench': medsegbench.USforKidneyMSBench,
-        'UWSkinCancerMSBench': medsegbench.UWSkinCancerMSBench,
-        'WbcMSBench': medsegbench.WbcMSBench,
-        'YeazMSBench': medsegbench.YeazMSBench,
-    }
+    dataset_class = getattr(medsegbench, dataset_name)
 
-    if dataset_name not in dataset_dict:
-        raise ValueError(f"Invalid dataset: {dataset_name}. Choose from {list(dataset_dict.keys())}")
+    metadata = config.DATASET_METADATA[dataset_name]
 
-    dataset_instance = dataset_dict[dataset_name](
+    dataset_instance = dataset_class(
         split=split,
         download=download,
         size=config.IMAGE_SIZE,
@@ -105,6 +99,4 @@ def get_dataset(dataset_name: str, split: str = 'train', download: bool = True, 
         **kwargs
     )
 
-    return MedSegBenchDataset(dataset_instance, split=split)
-
-
+    return MedSegBenchDataset(dataset_instance, split=split, meta=metadata), metadata
