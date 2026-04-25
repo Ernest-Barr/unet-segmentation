@@ -48,6 +48,9 @@ def train_epoch(model, model_name, dataset_name, loader, optimizer, criterion, d
     for images, masks in progress_bar:
         images, masks = images.to(device), masks.to(device)
 
+        if isinstance(criterion, nn.CrossEntropyLoss):
+            masks = masks.squeeze(1)
+
         optimizer.zero_grad()
         output = model(images)
         loss = criterion(output, masks)
@@ -69,6 +72,10 @@ def validate_epoch(model, model_name, dataset_name, loader, criterion, device):
     with torch.no_grad():
         for images, masks in progress_bar:
             images, masks = images.to(device), masks.to(device)
+
+            if isinstance(criterion, nn.CrossEntropyLoss):
+                masks = masks.squeeze(1)
+
             output = model(images)
             loss = criterion(output, masks)
             total_loss += loss.item()
