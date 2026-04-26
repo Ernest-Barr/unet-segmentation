@@ -2,6 +2,7 @@ import torch
 import torch.nn.functional as F
 
 from .ModularUNet import ModularUNet
+from .UNetPP import ModularUNetPP
 from .layers import DoubleConv, ResidualConv, DenseConv
 
 def UNet(imgChannels=3, outChannels=1, initFeatures=32, depth=4, dropRate=0.1):
@@ -70,8 +71,14 @@ def DenseAttentionUNet(imgChannels=3, outChannels=1, initFeatures=32, depth=4, d
         dropRate=dropRate
     )
 
-def UNetPP():
-    pass
+def UNetPP(imgChannels=3, outChannels=1, initFeatures=32, depth=4, dropRate=0.1):
+    return ModularUNetPP(
+        imgChannels=imgChannels,
+        outChannels=outChannels,
+        initFeatures=initFeatures,
+        depth=depth,
+        dropRate=dropRate
+    )
 
 # https://www.geeksforgeeks.org/python/args-kwargs-python/
 def get_model(model_name: str, **kwargs):
