@@ -24,6 +24,45 @@ class ResidualConv(nn.Module):
         return self.conv(x) + self.shortcut(x)
 
 
+class DenseConv(nn.Module):
+    def __init__(self, inChannels, outChannels, p=0.1, growth_rate=32):
+        super(DenseConv, self).__init__()
+        self.growth_rate = growth_rate
+        
+        # First conv layer
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(inChannels, growth_rate, 3, padding="same", bias=False),
+            nn.BatchNorm2d(growth_rate),
+            nn.ReLU(inplace=False),
+        )
+        
+        # Second conv layer
+        self.conv2 = nn.Sequential(
+            nn.Conv2d(inChannels + growth_rate, growth_rate, 3, padding="same", bias=False),
+            nn.BatchNorm2d(growth_rate),
+            nn.ReLU(inplace=False),
+        )
+        
+        # Transition layer
+        self.transition = nn.Sequential(
+            nn.Conv2d(inChannels + 2 * growth_rate, outChannels, 1, padding=0, bias=False),
+            nn.BatchNorm2d(outChannels),
+            nn.ReLU(inplace=False),
+            nn.Dropout2d(p),
+        )
+
+    def forward(self, x):
+        # Dense connections
+        out1 = self.conv1(x)
+        concat1 = torch.cat([x, out1], dim=1)
+        
+        out2 = self.conv2(concat1)
+        concat2 = torch.cat([concat1, out2], dim=1)
+        
+        # Transition to output channels
+        return self.transition(concat2)
+
+
 class AttentionGate(nn.Module):
     def __init__(self, g, x, out):
         super(AttentionGate, self).__init__()
