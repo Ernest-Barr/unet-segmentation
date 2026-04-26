@@ -2,14 +2,53 @@ import os
 import torch
 import torch.optim as optim
 import torch.nn as nn
+import matplotlib.pyplot as plt
+import torch.nn.functional as F
+import config
+
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-import matplotlib.pyplot as plt
-
-import config
 from dataset import get_dataset
 from models import get_model
 
+# https://medium.com/data-scientists-diary/implementation-of-dice-loss-vision-pytorch-7eef1e438f68
+# https://medium.com/@devanshipratiher/understanding-loss-functions-for-deep-learning-segmentation-models-30187836b30a
+# https://stackoverflow.com/questions/65125670/implementing-multiclass-dice-loss-function
+
+class DiceLoss(nn.Module):
+    def __init__(self, smooth=1e-6):
+        super(DiceLoss, self).__init__()
+        self.smooth = smooth
+
+    def forward(self, logits, targets, task='binary'):
+        if task == 'binary':
+            probs = torch.sigmoid(logits)
+        else:
+            probs = F.softmax(logits, dim=1)
+            targets = F.one_hot(targets, num_classes=logits.shape[1]).permute(0, 3, 1, 2).float()
+
+        probs = probs.reshape(-1)
+        targets = targets.reshape(-1)
+
+        intersection = (probs * targets).sum()
+        dice = (2. * intersection + self.smooth) / (probs.sum() + targets.sum() + self.smooth)
+        return 1 - dice
+
+
+class CombinedLoss(nn.Module):
+    def __init__(self, task='binary'):
+        super(CombinedLoss, self).__init__()
+        self.task = task
+        self.dice = DiceLoss()
+        if task == 'binary':
+            self.ce = nn.BCEWithLogitsLoss()
+        else:
+            self.ce = nn.CrossEntropyLoss()
+
+    def forward(self, logits, targets):
+        ce_loss = self.ce(logits, targets)
+        dice_loss = self.dice(logits, targets, task=self.task)
+        return ce_loss + dice_loss
 
 def setup_output_directory(model_name, dataset_name):
     weights_dir = os.path.join("..", "weights", model_name, dataset_name)
@@ -48,8 +87,8 @@ def train_epoch(model, model_name, dataset_name, loader, optimizer, criterion, d
     for images, masks in progress_bar:
         images, masks = images.to(device), masks.to(device)
 
-        if isinstance(criterion, nn.CrossEntropyLoss):
-            masks = masks.squeeze(1)
+        if criterion.task == 'multiclass':
+            masks = masks.squeeze(1).long()
 
         optimizer.zero_grad()
         output = model(images)
@@ -73,8 +112,8 @@ def validate_epoch(model, model_name, dataset_name, loader, criterion, device):
         for images, masks in progress_bar:
             images, masks = images.to(device), masks.to(device)
 
-            if isinstance(criterion, nn.CrossEntropyLoss):
-                masks = masks.squeeze(1)
+            if criterion.task == 'multiclass':
+                masks = masks.squeeze(1).long()
 
             output = model(images)
             loss = criterion(output, masks)
@@ -101,10 +140,7 @@ def train_model(model_name, dataset_name):
     optimizer = optim.Adam(model.parameters(), lr=config.LEARN_RATE)
 
 
-    if metadata['task'] == 'multiclass':
-        criterion = nn.CrossEntropyLoss()
-    else:
-        criterion = nn.BCEWithLogitsLoss()
+    criterion = CombinedLoss(task=metadata['task'])
 
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5)
 

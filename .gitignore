@@ -7,6 +7,7 @@ venv
 *.pth
 *.png
 *.csv
+*.zip
 
 __pycache__
 

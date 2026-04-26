@@ -1,4 +1,4 @@
-BATCH_SIZE = 16
+BATCH_SIZE = 12
 MAX_EPOCHS = 200
 PATIENCE = 10
 DELTA_PATIENCE = 0.005  # TODO: Verify number
@@ -53,9 +53,9 @@ DATASET_METADATA = {
 DATASETS = {
     'CovidQUExMSBench',
     'AbdomenUSMSBench',
-    'NucleiMSBench',
+    # 'NucleiMSBench',
     'BusiMSBench',
-    'DynamicNuclearMSBench'
+    # 'DynamicNuclearMSBench'
 }
 
 MODELS = [
@@ -63,7 +63,7 @@ MODELS = [
     'AttentionUNet',
     'ResUNet',
     'ResAttentionUNet',
-    # 'DenseUNet',
-    # 'DenseAttentionUNet',
-    # 'UNetPP'
+    'DenseUNet',
+    'DenseAttentionUNet',
+    'UNetPP'
 ]

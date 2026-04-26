@@ -50,7 +50,7 @@ def visualize_predictions(dataset_name):
     Args:
         dataset_name: Name of the dataset to visualize
     """
-    sample_idx = 0  # Always use the first image
+    sample_idx = 3  # Always use the first image
     device = config.DEVICE
     
     # Get dataset and metadata
