@@ -85,6 +85,10 @@ def validate_epoch(model, model_name, dataset_name, loader, criterion, device):
 # https://www.geeksforgeeks.org/deep-learning/understanding-pytorch-learning-rate-scheduling/
 # https://d2l.ai/chapter_optimization/lr-scheduler.html
 def train_model(model_name, dataset_name):
+    print(f"\n{'='*80}")
+    print(f"Training: {model_name} on {dataset_name}")
+    print(f"{'='*80}\n")
+    
     weights_dir, plots_dir = setup_output_directory(model_name, dataset_name)
 
     train_ds, metadata = get_dataset(dataset_name, split="train", download=False)
@@ -120,7 +124,7 @@ def train_model(model_name, dataset_name):
         scheduler.step(val_loss)
         current_lr = optimizer.param_groups[0]['lr']
 
-        print(f"Epoch {epoch:03d} | LR: {current_lr:.6f} | Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f} | Patience: {patience_counter} / {config.PATIENCE}")
+        print(f"[{model_name} | {dataset_name}] Epoch {epoch:03d} | LR: {current_lr:.6f} | Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f} | Patience: {patience_counter} / {config.PATIENCE}")
 
         torch.save(model.state_dict(), os.path.join(weights_dir, f"{model_name}_{dataset_name}_epoch_{epoch}.pth"))
 
@@ -133,16 +137,24 @@ def train_model(model_name, dataset_name):
             patience_counter += 1
 
         if patience_counter == config.PATIENCE:
-            print(f"Early stopping, model has not improved for {config.PATIENCE} epochs")
+            print(f"[{model_name} | {dataset_name}] Early stopping, model has not improved for {config.PATIENCE} epochs")
             break
 
     plot(train_history, val_history, plots_dir, model_name, dataset_name, best_epoch_idx)
+    print(f"\n[{model_name} | {dataset_name}] Training completed! Best epoch: {best_epoch_idx}\n")
 
 if __name__ == '__main__':
+    total_combinations = len(config.DATASETS) * len(config.MODELS)
+    current_combination = 0
+    
+    print(f"\nStarting training for {len(config.MODELS)} models across {len(config.DATASETS)} datasets")
+    print(f"Total combinations: {total_combinations}\n")
+    
     for dataset in config.DATASETS:
         for model in config.MODELS:
+            current_combination += 1
+            print(f"\n*** Progress: {current_combination}/{total_combinations} ***")
             try:
-                print(f"Training {model} on {dataset} dataset")
                 train_model(model, dataset)
             except Exception as e:
-                print(e)
+                print(f"ERROR training {model} on {dataset}: {e}")
