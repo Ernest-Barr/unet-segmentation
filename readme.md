@@ -57,13 +57,26 @@ cd src/
 python test.py 
 ```
 
+**Visualize**
+```bash 
+cd src/
+python visualize.py 
+```
+
 ## Datasets
+
+All datasets from MedSegBench are supported, their names can be found in the [config](src/config.py). 
 
 ## Models
 
-## Results  
-
-
-## References
+The following models are currently implemented:
+- 
+- U-Net
+- U-Net++ 
+- Attention U-Net
+- Dense U-Net
+- Residual U-Net
+- Residual Attention U-Net 
+- Dense Attention U-Net
 
 
